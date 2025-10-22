@@ -1,0 +1,25 @@
+[package]
+name = "amptop"
+version = "0.1.0"
+authors = ["harshvsri <harshvsri@gmail.com>"]
+edition = "2024"
+description = "Interactive battery statistics"
+homepage = "https://github.com/harshvsri/amptop"
+repository = "https://github.com/harshvsri/amptop"
+readme = "README.md"
+categories = ["os"]
+keywords = ["tui", "battery", "linux"]
+license = "Apache-2.0 OR MIT"
+exclude = ["assets"]
+
+[dependencies]
+battery = "0.7.8"
+log = "0.4.6"
+humantime = "1.2.0"
+crossterm = "0.29.0"
+ratatui = "0.29.0"
+clap = { version = "4.5.50", features = ["derive"] }
+rusqlite = { version = "0.32.0", features = ["bundled"] }
+daemonize = "0.5.0"
+chrono = "0.4"
+libc = "0.2"
