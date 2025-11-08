@@ -124,9 +124,8 @@ impl BatteryDaemon {
         self.monitoring_loop()
     }
 
-    #[allow(unused)]
-    pub fn get_logs(&self, limit: Option<usize>) -> Result<Vec<BatterySnapshot>> {
-        let conn = Connection::open(&self.db_path)?;
+    pub fn get_logs(limit: Option<usize>) -> Result<Vec<BatterySnapshot>> {
+        let conn = Connection::open(Self::get_db_path())?;
         let mut stmt = if let Some(limit) = limit {
             conn.prepare(&format!(
                 "SELECT percent, timestamp, status FROM battery_logs ORDER BY timestamp DESC LIMIT {}",
