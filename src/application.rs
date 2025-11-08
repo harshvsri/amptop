@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::errors::{Error, Result};
-use crate::ui::BatteryInfo;
+use crate::info::BatteryInfo;
+use crate::ui;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     DefaultTerminal, Frame,
@@ -9,19 +10,18 @@ use ratatui::{
 
 #[derive(Debug)]
 pub struct Application {
+    battery_info: BatteryInfo,
     config: Config,
     exit: bool,
-    battery_info: BatteryInfo,
 }
 
 impl Application {
     pub fn init(config: Config) -> Result<Self> {
         let battery_info = BatteryInfo::new()?;
-
         Ok(Self {
+            battery_info,
             config,
             exit: false,
-            battery_info,
         })
     }
 
@@ -85,14 +85,21 @@ impl Application {
             ])
             .split(main_columns[0]);
 
-        self.battery_info
-            .draw_state_of_charge_bar(frame, left_column[0]);
-        self.battery_info.draw_common_info(frame, left_column[1]);
-        self.battery_info
-            .draw_energy_info(frame, left_column[2], self.config.units());
-        self.battery_info.draw_timing_info(frame, left_column[3]);
-        self.battery_info
-            .draw_environment_info(frame, left_column[4], self.config.units());
-        self.battery_info.draw_drain_graph(frame, main_columns[1]);
+        ui::draw_state_of_charge_bar(&self.battery_info, frame, left_column[0]);
+        ui::draw_common_info(&self.battery_info, frame, left_column[1]);
+        ui::draw_energy_info(
+            &self.battery_info,
+            frame,
+            left_column[2],
+            self.config.unit(),
+        );
+        ui::draw_timing_info(&self.battery_info, frame, left_column[3]);
+        ui::draw_environment_info(
+            &self.battery_info,
+            frame,
+            left_column[4],
+            self.config.unit(),
+        );
+        ui::draw_drain_graph(frame, main_columns[1]);
     }
 }

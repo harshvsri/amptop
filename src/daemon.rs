@@ -22,12 +22,12 @@ pub struct BatteryDaemon {
 impl BatteryDaemon {
     pub fn new(interval_secs: u64) -> Self {
         Self {
-            db_path: Self::get_db_path(),
+            db_path: Self::init_or_get_path(),
             interval_secs,
         }
     }
 
-    fn get_db_path() -> PathBuf {
+    fn init_or_get_path() -> PathBuf {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
         let data_dir = PathBuf::from(home).join(".local/share/amptop");
         fs::create_dir_all(&data_dir).ok();
@@ -87,7 +87,7 @@ impl BatteryDaemon {
         Ok(())
     }
 
-    fn monitoring_loop(&self) -> Result<()> {
+    fn monitor(&self) -> Result<()> {
         let conn = self.init_database()?;
 
         loop {
@@ -102,10 +102,9 @@ impl BatteryDaemon {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
         let pid_dir = PathBuf::from(home).join(".local/share/amptop");
         let pid_file = pid_dir.join("daemon.pid");
-
         fs::create_dir_all(&pid_dir)?;
 
-        if pid_file.exists() {
+        if pid_file.exists() && BatteryDaemon::is_running() {
             return Err(Error::DaemonAlreadyRunning);
         }
 
@@ -121,33 +120,7 @@ impl BatteryDaemon {
         daemonize
             .start()
             .map_err(|e| Error::Daemonize(format!("{}", e)))?;
-        self.monitoring_loop()
-    }
-
-    pub fn get_logs(limit: Option<usize>) -> Result<Vec<BatterySnapshot>> {
-        let conn = Connection::open(Self::get_db_path())?;
-        let mut stmt = if let Some(limit) = limit {
-            conn.prepare(&format!(
-                "SELECT percent, timestamp, status FROM battery_logs ORDER BY timestamp DESC LIMIT {}",
-                limit
-            ))?
-        } else {
-            conn.prepare(
-                "SELECT percent, timestamp, status FROM battery_logs ORDER BY timestamp DESC",
-            )?
-        };
-
-        let logs = stmt
-            .query_map([], |row| {
-                Ok(BatterySnapshot {
-                    percent: row.get(0)?,
-                    timestamp: row.get(1)?,
-                    status: row.get(2)?,
-                })
-            })?
-            .collect::<rusqlite::Result<Vec<_>>>()?;
-
-        Ok(logs)
+        self.monitor()
     }
 
     pub fn is_running() -> bool {
@@ -183,5 +156,31 @@ impl BatteryDaemon {
         } else {
             Err(Error::DaemonNotRunning)
         }
+    }
+
+    pub fn get_logs(limit: Option<usize>) -> Result<Vec<BatterySnapshot>> {
+        let conn = Connection::open(Self::init_or_get_path())?;
+        let mut stmt = if let Some(limit) = limit {
+            conn.prepare(&format!(
+                "SELECT percent, timestamp, status FROM battery_logs ORDER BY timestamp DESC LIMIT {}",
+                limit
+            ))?
+        } else {
+            conn.prepare(
+                "SELECT percent, timestamp, status FROM battery_logs ORDER BY timestamp DESC",
+            )?
+        };
+
+        let logs = stmt
+            .query_map([], |row| {
+                Ok(BatterySnapshot {
+                    percent: row.get(0)?,
+                    timestamp: row.get(1)?,
+                    status: row.get(2)?,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        Ok(logs)
     }
 }

@@ -31,7 +31,6 @@ dependencies = [
  "daemonize",
  "humantime",
  "libc",
- "log",
  "ratatui",
  "rusqlite",
 ]

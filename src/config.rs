@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 use std::time::Duration;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub enum Units {
+pub enum Unit {
     Human,
     Si,
 }
@@ -15,7 +15,7 @@ pub enum Units {
 #[command(version)]
 pub struct Config {
     #[command(subcommand)]
-    pub command: Option<Commands>,
+    pub command: Option<Command>,
 
     #[arg(
         short,
@@ -33,11 +33,11 @@ pub struct Config {
         value_parser = Config::parse_unit
     )]
     /// Measurement units displayed, possible values (human, si) (TUI mode only)
-    units: Units,
+    unit: Unit,
 }
 
 #[derive(Subcommand, Debug)]
-pub enum Commands {
+pub enum Command {
     /// Manage the battery monitoring daemon
     #[command(name = "daemon")]
     Daemon {
@@ -65,8 +65,8 @@ impl Config {
         &self.delay
     }
 
-    pub fn units(&self) -> Units {
-        self.units
+    pub fn unit(&self) -> Unit {
+        self.unit
     }
 
     fn parse_duration(s: &str) -> std::result::Result<Duration, String> {
@@ -76,18 +76,19 @@ impl Config {
         }
     }
 
-    fn parse_unit(s: &str) -> std::result::Result<Units, String> {
+    fn parse_unit(s: &str) -> std::result::Result<Unit, String> {
         match s {
-            _ if s.eq_ignore_ascii_case("human") => Ok(Units::Human),
-            _ if s.eq_ignore_ascii_case("SI") => Ok(Units::Si),
+            _ if s.eq_ignore_ascii_case("human") => Ok(Unit::Human),
+            _ if s.eq_ignore_ascii_case("si") => Ok(Unit::Si),
             _ => Err(format!("{} isn't a valid unit", s)),
         }
     }
 
+    // FIX: This section might need some more careful attention.
     pub fn handle_command(&self) -> Result<bool> {
         if let Some(ref command) = self.command {
             match command {
-                Commands::Daemon { action } => match action {
+                Command::Daemon { action } => match action {
                     DaemonAction::Start { interval } => {
                         let daemon = BatteryDaemon::new(*interval);
                         match daemon.start_daemon() {

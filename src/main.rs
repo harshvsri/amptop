@@ -2,6 +2,7 @@ mod application;
 mod config;
 mod daemon;
 mod errors;
+mod info;
 mod ui;
 
 use crate::config::Config;
